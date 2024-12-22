@@ -1,0 +1,58 @@
+function epic($url_webhook)
+   { 
+    // __**en gras souligné**__  
+    // Takes raw data from the request
+    $json = file_get_contents('https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions?locale=fr-FR&country=FR&allowCountries=FR');
+    // Converts it into a PHP object
+    $data = json_decode($json,true); 
+    for ($i=0 ; $i<count($data['data']['Catalog']['searchStore']['elements'])  ;$i++ )
+        {            
+        if(    $data['data']['Catalog']['searchStore']['elements'][$i]['title'] != "Mystery Game" 
+            && $data['data']['Catalog']['searchStore']['elements'][$i]['price']['totalPrice']['discountPrice'] == 0)
+        
+            { 
+            $ladate = $data['data']['Catalog']['searchStore']['elements'][$i]['viewableDate']; 
+            $ladate = "Commence le ".substr($ladate, 8, 2)."-".substr($ladate, 5, 2)."-".substr($ladate, 0, 4);
+
+            if ( strlen($data['data']['Catalog']['searchStore']['elements'][$i]['productSlug']) > 0  ) // != null
+                 $link = "https://www.epicgames.com/store/fr-FR/product/".$data['data']['Catalog']['searchStore']['elements'][$i]['productSlug']; 
+            else $link = "https://www.epicgames.com/store/fr-FR/product/".$data['data']['Catalog']['searchStore']['elements'][$i]['urlSlug'];  
+
+            $hookObject = json_encode([
+                                    "content" => "Epic free games",
+                                    "username" => "EpicBot",
+                                    "avatar_url" => "https://cdn.dlcompare.com/others_png/upload/platform/logo/57.png",
+                                    "tts" => false,
+                                    // "file" => "",  
+                                    "embeds" => [[                                    
+                                                  // Set the title for your embed
+                                                  "title" => $data['data']['Catalog']['searchStore']['elements'][$i]['title'],
+                                                  // The type of your embed, will ALWAYS be "rich"
+                                                  "type" => "rich",
+                                                  // A description for your embed
+                                                  "description" => $data['data']['Catalog']['searchStore']['elements'][$i]['description'],
+                                                  // The URL of where your title will be a l
+                                                  "url" => $link,
+                                                  // The integer color to be used on the left side of the embed
+                                                  "color" => hexdec( "FFFFFF" ),
+                                                  // Footer object
+                                                  "footer" => [
+                                                              "text" => $ladate,
+                                                              "icon_url" => "https://cdn.dlcompare.com/others_png/upload/platform/logo/57.png"
+                                                              ],
+                                                  // Image object                                               
+                                                  "image" => [
+                                                              "url" => str_replace( " ","%20",$data['data']['Catalog']['searchStore']['elements'][$i] ['keyImages']['0']['url']) ,
+                                                              "width" =>  300 ]  
+                                                             
+                                                              ]]], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );   
+            $ch = curl_init();
+
+            curl_setopt_array( $ch, [
+                                  CURLOPT_URL => $url_webhook,
+                                  CURLOPT_POST => true,
+                                  CURLOPT_POSTFIELDS => $hookObject,
+                                  CURLOPT_HTTPHEADER => [
+                                                         "Content-Type: application/json" ]]);
+            $response = curl_exec( $ch );
+            curl_close( $ch );}}}    
